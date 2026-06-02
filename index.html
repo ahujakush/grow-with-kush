@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kush Growth OS — Supabase Tracker</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <div id="authScreen" class="auth-screen">
+    <div class="auth-card">
+      <div class="brand center-brand">
+        <div class="orb"></div>
+        <div>
+          <h1>Kush Growth OS</h1>
+          <p>Career + DSA + BYC tracker backed by Supabase</p>
+        </div>
+      </div>
+
+      <div class="auth-tabs">
+        <button class="auth-tab active" data-auth-mode="login">Login</button>
+        <button class="auth-tab" data-auth-mode="signup">Create Account</button>
+      </div>
+
+      <form id="authForm" class="form">
+        <label>Email
+          <input type="email" id="authEmail" placeholder="your@email.com" required />
+        </label>
+        <label>Password
+          <input type="password" id="authPassword" placeholder="Minimum 6 characters" required />
+        </label>
+        <button class="primary" id="authSubmit" type="submit">Login</button>
+      </form>
+
+      <p class="muted small-note">
+        Data saves in your separate Supabase project, not BYC Supabase.
+      </p>
+      <div id="authMessage" class="message hidden"></div>
+    </div>
+  </div>
+
+  <div id="appShell" class="app-shell hidden">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="orb"></div>
+        <div>
+          <h1>Kush Growth OS</h1>
+          <p>Engineer + AI Builder + Startup Thinker</p>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <button class="nav-link active" data-page="dashboard">Dashboard</button>
+        <button class="nav-link" data-page="today">Add / Edit Log</button>
+        <button class="nav-link" data-page="logs">All Logs</button>
+        <button class="nav-link" data-page="topics">Flexible Topics</button>
+        <button class="nav-link" data-page="roadmap">Roadmap</button>
+        <button class="nav-link" data-page="byc">BYC Lab</button>
+        <button class="nav-link" data-page="resources">Resources</button>
+        <button class="nav-link" data-page="data">Backup</button>
+      </nav>
+
+      <div class="sidebar-card">
+        <p class="eyebrow">Storage</p>
+        <strong>Separate Supabase Project</strong>
+        <small>BYC database is untouched. Your tracker data is isolated.</small>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow" id="todayDate"></p>
+          <h2 id="pageTitle">Dashboard</h2>
+        </div>
+        <div class="top-actions">
+          <span class="user-pill" id="userEmail"></span>
+          <button class="ghost" id="refreshBtn">Refresh</button>
+          <button class="ghost" id="logoutBtn">Logout</button>
+          <button class="primary" data-page-jump="today">Add Log</button>
+        </div>
+      </header>
+
+      <section id="dashboard" class="page active">
+        <div class="hero">
+          <div>
+            <p class="eyebrow">Personal Operating System</p>
+            <h3>BYC daily. DSA, CS and backend rotate without guilt.</h3>
+            <p>Track actual learning, teacher or YouTube source, hours, problems, confidence, and mastery. Dashboard analyzes real work, not rigid calendar assumptions.</p>
+          </div>
+          <div class="hero-box">
+            <span>Today’s Suggested Focus</span>
+            <strong id="todayFocus">BYC + DSA</strong>
+            <small id="todayFocusHint">Based on your weekly rhythm.</small>
+          </div>
+        </div>
+
+        <div class="stats-grid">
+          <article class="stat-card">
+            <span>Total Hours</span>
+            <strong id="totalHours">0</strong>
+            <small>Study + BYC combined</small>
+          </article>
+          <article class="stat-card">
+            <span>DSA Problems</span>
+            <strong id="dsaProblems">0</strong>
+            <small>Quality problems logged</small>
+          </article>
+          <article class="stat-card">
+            <span>BYC Active Days</span>
+            <strong id="bycDays">0</strong>
+            <small>Days with BYC work</small>
+          </article>
+          <article class="stat-card">
+            <span>Mastery</span>
+            <strong id="masteryPercent">0%</strong>
+            <small>Mastered topics / total topics</small>
+          </article>
+        </div>
+
+        <div class="dashboard-grid">
+          <article class="panel">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow">Graph</p>
+                <h3>Last 14 Days Hours</h3>
+              </div>
+            </div>
+            <div id="hoursChart" class="chart-box"></div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow">Graph</p>
+                <h3>Area-wise Breakdown</h3>
+              </div>
+            </div>
+            <div id="areaBars" class="bars"></div>
+          </article>
+        </div>
+
+        <div class="dashboard-grid">
+          <article class="panel">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow">Graph</p>
+                <h3>DSA Problems by Topic</h3>
+              </div>
+            </div>
+            <div id="dsaTopicChart" class="chart-box"></div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow">Weekly Rhythm</p>
+                <h3>Realistic Schedule</h3>
+              </div>
+            </div>
+            <div id="weeklyPlan" class="weekly-plan"></div>
+          </article>
+        </div>
+
+        <article class="panel">
+          <div class="panel-head">
+            <div>
+              <p class="eyebrow">Recent Work</p>
+              <h3>Latest Logs</h3>
+            </div>
+            <button class="ghost" data-page-jump="logs">View All</button>
+          </div>
+          <div id="recentLogs" class="log-list empty-state">No logs yet. Add your first daily entry.</div>
+        </article>
+      </section>
+
+      <section id="today" class="page">
+        <div class="split">
+          <article class="panel">
+            <p class="eyebrow" id="formModeLabel">Daily Tracker</p>
+            <h3 id="dailyFormTitle">Add today’s real learning</h3>
+            <p class="muted">Teacher order changed? YouTube se padha? BYC need ki wajah se new topic padha? Bas yahan actual work log karo.</p>
+
+            <form id="dailyForm" class="form">
+              <input type="hidden" id="editLogId" />
+
+              <div class="form-row">
+                <label>Date
+                  <input type="date" id="logDate" required />
+                </label>
+                <label>Energy
+                  <select id="energy">
+                    <option>Green Day</option>
+                    <option>Yellow Day</option>
+                    <option>Red Day</option>
+                  </select>
+                </label>
+              </div>
+
+              <div class="form-row">
+                <label>Study Area
+                  <select id="area">
+                    <option>DSA</option>
+                    <option>Backend/API</option>
+                    <option>CS Fundamentals</option>
+                    <option>OOP</option>
+                    <option>SQL/DBMS</option>
+                    <option>React/Next Basics</option>
+                    <option>BYC</option>
+                    <option>Revision</option>
+                  </select>
+                </label>
+                <label>Learning Type
+                  <select id="source">
+                    <option>Teacher</option>
+                    <option>YouTube</option>
+                    <option>Roadmap</option>
+                    <option>BYC Need</option>
+                    <option>Revision</option>
+                    <option>Interview</option>
+                    <option>Self Study</option>
+                  </select>
+                </label>
+              </div>
+
+              <div class="form-row">
+                <label>Teacher / YouTube Channel
+                  <input id="sourceName" placeholder="Example: Sir name, CodeWithHarry, Apna College" />
+                </label>
+                <label>Lecture / Video Link / Class No.
+                  <input id="sourceLink" placeholder="Optional" />
+                </label>
+              </div>
+
+              <label>Topic
+                <input id="topic" placeholder="Example: HashMap, Arrays, SQL Joins, FastAPI Routes" required />
+              </label>
+
+              <label>Subtopic
+                <input id="subtopic" placeholder="Example: Frequency map, Prefix sum, GET/POST APIs" />
+              </label>
+
+              <div class="form-row">
+                <label>Status
+                  <select id="status">
+                    <option>Done ✅</option>
+                    <option>In Progress</option>
+                    <option>Class Done</option>
+                    <option>Skipped / Rescheduled</option>
+                  </select>
+                </label>
+                <label>Problems Done
+                  <input type="number" id="problems" min="0" value="0" />
+                </label>
+              </div>
+
+              <div class="form-row">
+                <label>Study Hours
+                  <input type="number" id="hours" min="0" step="0.25" value="1" />
+                </label>
+                <label>BYC Minutes
+                  <input type="number" id="bycMinutes" min="0" step="5" value="60" />
+                </label>
+              </div>
+
+              <label>Confidence
+                <select id="confidence">
+                  <option>Low</option>
+                  <option selected>Medium</option>
+                  <option>High</option>
+                </select>
+              </label>
+
+              <label>Notes
+                <textarea id="notes" rows="4" placeholder="What did you learn? What got stuck? What should be revised?"></textarea>
+              </label>
+
+              <div class="button-row">
+                <button class="primary" type="submit" id="saveLogBtn">Save Daily Log</button>
+                <button class="ghost hidden" type="button" id="cancelEditBtn">Cancel Edit</button>
+              </div>
+            </form>
+          </article>
+
+          <article class="panel">
+            <p class="eyebrow">Core Logic</p>
+            <h3>Class done and mastery are different</h3>
+            <div class="rule-card">
+              <strong>Today’s Log</strong>
+              <p>Aaj jo actually padha, jis teacher/channel se padha, woh log karo.</p>
+            </div>
+            <div class="rule-card">
+              <strong>Flexible Topics</strong>
+              <p>Topic ko Class Started, Class Done, ya Mastered mark karo.</p>
+            </div>
+            <div class="rule-card">
+              <strong>Roadmap</strong>
+              <p>Sirf direction ke liye. Daily reality ko force mat karo.</p>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section id="logs" class="page">
+        <article class="panel">
+          <div class="panel-head">
+            <div>
+              <p class="eyebrow">All Logs</p>
+              <h3>Edit, delete, and review your daily logs</h3>
+            </div>
+            <button class="primary" data-page-jump="today">Add New Log</button>
+          </div>
+
+          <div class="filters">
+            <button class="pill active log-filter" data-log-filter="All">All</button>
+            <button class="pill log-filter" data-log-filter="DSA">DSA</button>
+            <button class="pill log-filter" data-log-filter="BYC">BYC</button>
+            <button class="pill log-filter" data-log-filter="Backend/API">Backend</button>
+            <button class="pill log-filter" data-log-filter="CS Fundamentals">CS</button>
+            <button class="pill log-filter" data-log-filter="SQL/DBMS">SQL</button>
+          </div>
+
+          <div id="allLogsTable" class="table-wrap"></div>
+        </article>
+      </section>
+
+      <section id="topics" class="page">
+        <article class="panel">
+          <div class="panel-head">
+            <div>
+              <p class="eyebrow">Flexible Topic Tracker</p>
+              <h3>Topic mastery without dashboard confusion</h3>
+              <p class="muted">Future HashMap/Recursion can be started early. Dashboard tracks mastery, not planned month.</p>
+            </div>
+            <button class="primary" id="addTopicBtn">Add Topic</button>
+          </div>
+
+          <div id="topicFormWrap" class="topic-form-wrap hidden">
+            <form id="topicForm" class="form compact-form">
+              <div class="form-row">
+                <label>Area
+                  <select id="topicArea">
+                    <option>DSA</option>
+                    <option>Backend/API</option>
+                    <option>CS Fundamentals</option>
+                    <option>OOP</option>
+                    <option>SQL/DBMS</option>
+                    <option>BYC</option>
+                    <option>React/Next Basics</option>
+                  </select>
+                </label>
+                <label>Topic
+                  <input id="topicName" placeholder="Example: HashMap" required />
+                </label>
+              </div>
+              <div class="form-row">
+                <label>Planned Phase
+                  <input id="plannedPhase" placeholder="Example: July 2026 / Later / Teacher" />
+                </label>
+                <label>Source
+                  <select id="topicSource">
+                    <option>Roadmap</option>
+                    <option>Teacher</option>
+                    <option>YouTube</option>
+                    <option>BYC Need</option>
+                    <option>Interview</option>
+                    <option>Revision</option>
+                  </select>
+                </label>
+              </div>
+              <div class="form-row">
+                <label>Teacher / Channel
+                  <input id="topicSourceName" placeholder="Optional" />
+                </label>
+                <label>Class Status
+                  <select id="classStatus">
+                    <option>Not Started</option>
+                    <option>Class Started</option>
+                    <option>Class Done</option>
+                  </select>
+                </label>
+              </div>
+              <div class="form-row">
+                <label>Mastery Status
+                  <select id="masteryStatus">
+                    <option>Not Started</option>
+                    <option>In Progress</option>
+                    <option>Mastered ✅</option>
+                  </select>
+                </label>
+                <label>Target Problems
+                  <input type="number" id="targetProblems" min="0" value="10" />
+                </label>
+              </div>
+              <label>Problems Done
+                <input type="number" id="topicProblemsDone" min="0" value="0" />
+              </label>
+              <label>Notes
+                <textarea id="topicNotes" rows="3" placeholder="Started early by teacher, needs revision, etc."></textarea>
+              </label>
+              <button class="primary" type="submit">Save Topic</button>
+            </form>
+          </div>
+
+          <div class="filters">
+            <button class="pill active topic-filter" data-filter="All">All</button>
+            <button class="pill topic-filter" data-filter="DSA">DSA</button>
+            <button class="pill topic-filter" data-filter="Backend/API">Backend/API</button>
+            <button class="pill topic-filter" data-filter="CS Fundamentals">CS</button>
+            <button class="pill topic-filter" data-filter="BYC">BYC</button>
+          </div>
+
+          <div id="topicsTable" class="table-wrap"></div>
+        </article>
+      </section>
+
+      <section id="roadmap" class="page">
+        <div class="roadmap-grid">
+          <article class="panel"><p class="eyebrow">Phase 1</p><h3>June–August 2026</h3><ul class="clean-list"><li>Python revision + OOP basics</li><li>DSA basics</li><li>Git/GitHub basics</li><li>SQL + DBMS basics</li><li>API + HTTP basics</li><li>BYC codebase understanding</li></ul></article>
+          <article class="panel"><p class="eyebrow">Phase 2</p><h3>Sep–Dec 2026</h3><ul class="clean-list"><li>FastAPI + backend routes</li><li>Database integration</li><li>Recursion, trees, graphs basics</li><li>BYC API map + DB schema</li><li>AI snapshot generator logic</li></ul></article>
+          <article class="panel"><p class="eyebrow">Phase 3</p><h3>Jan–June 2027</h3><ul class="clean-list"><li>BYC Lite from scratch</li><li>React/Next basics</li><li>Internship applications</li><li>OS + CN fundamentals</li><li>120–150 DSA problems</li></ul></article>
+          <article class="panel"><p class="eyebrow">Phase 4</p><h3>July 2027–June 2028</h3><ul class="clean-list"><li>Interview revision</li><li>180–220 quality DSA problems</li><li>BYC technical case study</li><li>Resume + LinkedIn + GitHub polish</li><li>Off-campus applications</li></ul></article>
+        </div>
+      </section>
+
+      <section id="byc" class="page">
+        <div class="split">
+          <article class="panel">
+            <p class="eyebrow">BYC Lab</p>
+            <h3>Turn BYC into a technical portfolio asset</h3>
+            <div class="byc-flow"><div>Founder Call</div><span>→</span><div>Transcript</div><span>→</span><div>Webhook</div><span>→</span><div>Supabase</div><span>→</span><div>Groq Snapshot</div><span>→</span><div>Dashboard</div></div>
+            <div class="checklist" id="bycChecklist"></div>
+          </article>
+          <article class="panel">
+            <p class="eyebrow">Interview Explanation</p>
+            <h3>Say this, not “AI se banaya”</h3>
+            <div class="quote-box">“BYC is an AI-powered founder intelligence system. It uses a discovery call to collect founder context, sends the transcript through backend workflows, stores structured data in Supabase, generates a structured intelligence snapshot through LLM orchestration, and displays it on a founder dashboard.”</div>
+          </article>
+        </div>
+      </section>
+
+      <section id="resources" class="page">
+        <article class="panel">
+          <p class="eyebrow">Hinglish-Friendly Resources</p>
+          <h3>Main study sources</h3>
+          <div class="resources-grid">
+            <div class="resource-card"><strong>Python + OOP</strong><p>CodeWithHarry</p></div>
+            <div class="resource-card"><strong>DSA in Python</strong><p>Code & Debug / Python DSA playlists</p></div>
+            <div class="resource-card"><strong>DSA Concepts</strong><p>Apna College, CodeHelp by Babbar</p></div>
+            <div class="resource-card"><strong>DBMS / SQL</strong><p>Gate Smashers + practice queries</p></div>
+            <div class="resource-card"><strong>OS / CN</strong><p>Jenny's Lectures / Gate Smashers</p></div>
+            <div class="resource-card"><strong>Backend</strong><p>FastAPI docs + mini projects</p></div>
+          </div>
+        </article>
+      </section>
+
+      <section id="data" class="page">
+        <div class="split">
+          <article class="panel">
+            <p class="eyebrow">Backup</p>
+            <h3>Export your Supabase data</h3>
+            <p class="muted">Data is already stored in Supabase. Export is only for personal offline backup.</p>
+            <div class="button-row">
+              <button class="primary" id="exportJson">Export Full JSON</button>
+              <button class="ghost" id="exportCsv">Export Logs CSV</button>
+            </div>
+          </article>
+          <article class="panel">
+            <p class="eyebrow">Supabase Project</p>
+            <h3>Connected storage</h3>
+            <div class="rule-card"><strong>Project</strong><p>kush-growth-os-tracker</p></div>
+            <div class="rule-card"><strong>Tables</strong><p>daily_logs, flexible_topics, byc_lab_tasks</p></div>
+            <div class="rule-card"><strong>Security</strong><p>RLS enabled. Logged-in user can only access their own rows.</p></div>
+          </article>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
