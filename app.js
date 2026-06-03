@@ -1,4 +1,4 @@
-const supabase = window.supabase.createClient(
+const supabaseClient = window.supabase.createClient(
   window.KUSH_SUPABASE_URL,
   window.KUSH_SUPABASE_PUBLISHABLE_KEY
 );
@@ -94,7 +94,7 @@ async function init(){
   showAuthMessage("Checking session...");
   disableAuthButtons(true);
 
-  const { data: { session }, error } = await supabase.auth.getSession();
+  const { data: { session }, error } = await supabaseClient.auth.getSession();
   if(error) {
     showAuthMessage(error.message);
     showAuth();
@@ -105,7 +105,7 @@ async function init(){
     showAuth();
   }
 
-  supabase.auth.onAuthStateChange(async (event, session) => {
+  supabaseClient.auth.onAuthStateChange(async (event, session) => {
     if(event === "SIGNED_IN" && session?.user) {
       await enterApp(session.user);
     } else if (event === "SIGNED_OUT") {
@@ -118,10 +118,10 @@ async function handleGoogleLogin() {
   showAuthMessage("Redirecting to Google...");
   disableAuthButtons(true);
   try {
-    const { data, error } = await supabase.auth.signInWithOAuth({
+    const { data, error } = await supabaseClient.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: "https://ahujakush.github.io/grow-with-kush/"
+        redirectTo: window.location.origin + window.location.pathname
       }
     });
     if (error) {
@@ -153,7 +153,7 @@ async function handleAuth(e){
   try {
     let result;
     if(authMode === "signup"){
-      result = await supabase.auth.signUp({ email, password });
+      result = await supabaseClient.auth.signUp({ email, password });
       if(result.error) {
         disableAuthButtons(false);
         return showAuthMessage(result.error.message);
@@ -161,7 +161,7 @@ async function handleAuth(e){
       showAuthMessage("Account created. If email confirmation is required, check your inbox. Otherwise you can login.");
       disableAuthButtons(false);
     } else {
-      result = await supabase.auth.signInWithPassword({ email, password });
+      result = await supabaseClient.auth.signInWithPassword({ email, password });
       if(result.error) {
         disableAuthButtons(false);
         return showAuthMessage(result.error.message);
@@ -195,7 +195,7 @@ function showAuth(){
 }
 
 async function logout(){
-  await supabase.auth.signOut();
+  await supabaseClient.auth.signOut();
   showAuth();
 }
 
@@ -208,19 +208,19 @@ async function loadAll(){
 }
 
 async function loadDailyLogs(){
-  const { data, error } = await supabase.from("daily_logs").select("*").order("log_date",{ascending:false}).order("created_at",{ascending:false});
+  const { data, error } = await supabaseClient.from("daily_logs").select("*").order("log_date",{ascending:false}).order("created_at",{ascending:false});
   if(error) return alert(error.message);
   dailyLogs = data || [];
 }
 
 async function loadTopics(){
-  const { data, error } = await supabase.from("flexible_topics").select("*").order("created_at",{ascending:true});
+  const { data, error } = await supabaseClient.from("flexible_topics").select("*").order("created_at",{ascending:true});
   if(error) return alert(error.message);
   topics = data || [];
 }
 
 async function loadBycTasks(){
-  const { data, error } = await supabase.from("byc_lab_tasks").select("*").order("created_at",{ascending:true});
+  const { data, error } = await supabaseClient.from("byc_lab_tasks").select("*").order("created_at",{ascending:true});
   if(error) return alert(error.message);
   bycTasks = data || [];
 }
@@ -240,11 +240,11 @@ async function seedDefaultsIfEmpty(){
       problems_done: t[8],
       notes: t[9]
     }));
-    await supabase.from("flexible_topics").insert(rows);
+    await supabaseClient.from("flexible_topics").insert(rows);
   }
   if(bycTasks.length === 0){
     const rows = defaultBycTasks.map(task => ({ user_id: currentUser.id, task, is_done:false }));
-    await supabase.from("byc_lab_tasks").insert(rows);
+    await supabaseClient.from("byc_lab_tasks").insert(rows);
   }
 }
 
@@ -281,9 +281,9 @@ async function saveDailyLog(e){
 
   let result;
   if(id){
-    result = await supabase.from("daily_logs").update(row).eq("id", id);
+    result = await supabaseClient.from("daily_logs").update(row).eq("id", id);
   } else {
-    result = await supabase.from("daily_logs").insert(row);
+    result = await supabaseClient.from("daily_logs").insert(row);
   }
   if(result.error) return alert(result.error.message);
 
@@ -301,7 +301,7 @@ async function updateTopicFromLog(log){
   if(log.status === "In Progress") patch.class_status = "Class Started";
   if(log.study_area === "DSA" && log.problems_done > 0) patch.problems_done = Number(matching.problems_done || 0) + Number(log.problems_done || 0);
   if(Object.keys(patch).length){
-    await supabase.from("flexible_topics").update(patch).eq("id", matching.id);
+    await supabaseClient.from("flexible_topics").update(patch).eq("id", matching.id);
   }
 }
 
@@ -345,7 +345,7 @@ function editLog(id){
 
 async function deleteLog(id){
   if(!confirm("Delete this log?")) return;
-  const { error } = await supabase.from("daily_logs").delete().eq("id", id);
+  const { error } = await supabaseClient.from("daily_logs").delete().eq("id", id);
   if(error) return alert(error.message);
   await loadAll();
 }
@@ -365,7 +365,7 @@ async function saveTopic(e){
     problems_done: Number($("topicProblemsDone").value || 0),
     notes: $("topicNotes").value.trim()
   };
-  const { error } = await supabase.from("flexible_topics").insert(row);
+  const { error } = await supabaseClient.from("flexible_topics").insert(row);
   if(error) return alert(error.message);
   $("topicForm").reset();
   $("topicFormWrap").classList.add("hidden");
@@ -373,20 +373,20 @@ async function saveTopic(e){
 }
 
 async function updateTopic(id, field, value){
-  const { error } = await supabase.from("flexible_topics").update({[field]: value}).eq("id", id);
+  const { error } = await supabaseClient.from("flexible_topics").update({[field]: value}).eq("id", id);
   if(error) return alert(error.message);
   await loadAll();
 }
 
 async function deleteTopic(id){
   if(!confirm("Delete this topic?")) return;
-  const { error } = await supabase.from("flexible_topics").delete().eq("id", id);
+  const { error } = await supabaseClient.from("flexible_topics").delete().eq("id", id);
   if(error) return alert(error.message);
   await loadAll();
 }
 
 async function toggleByc(id, checked){
-  const { error } = await supabase.from("byc_lab_tasks").update({is_done: checked}).eq("id", id);
+  const { error } = await supabaseClient.from("byc_lab_tasks").update({is_done: checked}).eq("id", id);
   if(error) return alert(error.message);
   await loadAll();
 }
