@@ -117,14 +117,21 @@ async function init(){
 async function handleGoogleLogin() {
   showAuthMessage("Redirecting to Google...");
   disableAuthButtons(true);
-  const { error } = await supabase.auth.signInWithOAuth({
-    provider: "google",
-    options: {
-      redirectTo: "https://ahujakush.github.io/grow-with-kush/"
+  try {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: "https://ahujakush.github.io/grow-with-kush/"
+      }
+    });
+    if (error) {
+      showAuthMessage(error.message);
+      disableAuthButtons(false);
+    } else if (data && data.url) {
+      window.location.href = data.url;
     }
-  });
-  if (error) {
-    showAuthMessage(error.message);
+  } catch (err) {
+    showAuthMessage("Error: " + err.message);
     disableAuthButtons(false);
   }
 }
@@ -143,22 +150,27 @@ async function handleAuth(e){
   const email = $("authEmail").value.trim();
   const password = $("authPassword").value;
 
-  let result;
-  if(authMode === "signup"){
-    result = await supabase.auth.signUp({ email, password });
-    if(result.error) {
+  try {
+    let result;
+    if(authMode === "signup"){
+      result = await supabase.auth.signUp({ email, password });
+      if(result.error) {
+        disableAuthButtons(false);
+        return showAuthMessage(result.error.message);
+      }
+      showAuthMessage("Account created. If email confirmation is required, check your inbox. Otherwise you can login.");
       disableAuthButtons(false);
-      return showAuthMessage(result.error.message);
+    } else {
+      result = await supabase.auth.signInWithPassword({ email, password });
+      if(result.error) {
+        disableAuthButtons(false);
+        return showAuthMessage(result.error.message);
+      }
+      await enterApp(result.data.user);
     }
-    showAuthMessage("Account created. If email confirmation is required, check your inbox. Otherwise you can login.");
+  } catch (err) {
+    showAuthMessage("Error: " + err.message);
     disableAuthButtons(false);
-  } else {
-    result = await supabase.auth.signInWithPassword({ email, password });
-    if(result.error) {
-      disableAuthButtons(false);
-      return showAuthMessage(result.error.message);
-    }
-    await enterApp(result.data.user);
   }
 }
 
