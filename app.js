@@ -65,6 +65,8 @@ async function init(){
   }));
 
   $("authForm").addEventListener("submit", handleAuth);
+  const googleBtn = $("googleLoginBtn");
+  if(googleBtn) googleBtn.addEventListener("click", handleGoogleLogin);
   $("logoutBtn").addEventListener("click", logout);
   $("refreshBtn").addEventListener("click", loadAll);
   $("dailyForm").addEventListener("submit", saveDailyLog);
@@ -88,31 +90,74 @@ async function init(){
     renderAllLogs();
   }));
 
-  const { data: { session } } = await supabase.auth.getSession();
-  if(session?.user){
+  // Check session on load
+  showAuthMessage("Checking session...");
+  disableAuthButtons(true);
+
+  const { data: { session }, error } = await supabase.auth.getSession();
+  if(error) {
+    showAuthMessage(error.message);
+    showAuth();
+  } else if(session?.user){
     await enterApp(session.user);
+  } else {
+    $("authMessage").classList.add("hidden");
+    showAuth();
   }
 
-  supabase.auth.onAuthStateChange(async (_event, session) => {
-    if(session?.user) await enterApp(session.user);
-    else showAuth();
+  supabase.auth.onAuthStateChange(async (event, session) => {
+    if(event === "SIGNED_IN" && session?.user) {
+      await enterApp(session.user);
+    } else if (event === "SIGNED_OUT") {
+      showAuth();
+    }
   });
+}
+
+async function handleGoogleLogin() {
+  showAuthMessage("Redirecting to Google...");
+  disableAuthButtons(true);
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: "https://ahujakush.github.io/grow-with-kush/"
+    }
+  });
+  if (error) {
+    showAuthMessage(error.message);
+    disableAuthButtons(false);
+  }
+}
+
+function disableAuthButtons(disabled) {
+  const submitBtn = $("authSubmit");
+  const googleBtn = $("googleLoginBtn");
+  if (submitBtn) submitBtn.disabled = disabled;
+  if (googleBtn) googleBtn.disabled = disabled;
 }
 
 async function handleAuth(e){
   e.preventDefault();
   showAuthMessage("Please wait...");
+  disableAuthButtons(true);
   const email = $("authEmail").value.trim();
   const password = $("authPassword").value;
 
   let result;
   if(authMode === "signup"){
     result = await supabase.auth.signUp({ email, password });
-    if(result.error) return showAuthMessage(result.error.message);
-    showAuthMessage("Account created. If email confirmation is enabled, confirm email first. Otherwise you can login now.");
+    if(result.error) {
+      disableAuthButtons(false);
+      return showAuthMessage(result.error.message);
+    }
+    showAuthMessage("Account created. If email confirmation is required, check your inbox. Otherwise you can login.");
+    disableAuthButtons(false);
   } else {
     result = await supabase.auth.signInWithPassword({ email, password });
-    if(result.error) return showAuthMessage(result.error.message);
+    if(result.error) {
+      disableAuthButtons(false);
+      return showAuthMessage(result.error.message);
+    }
     await enterApp(result.data.user);
   }
 }
@@ -134,6 +179,7 @@ function showAuth(){
   currentUser = null;
   $("authScreen").classList.remove("hidden");
   $("appShell").classList.add("hidden");
+  disableAuthButtons(false);
 }
 
 async function logout(){
